@@ -1,0 +1,23 @@
+name: build
+description:
+
+inputs:
+  nightly-features:
+    description:
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - uses: dylni/build-actions/setup@master
+      with:
+        version: stable
+    - run: |
+        perl -pi -e 's/"dep:/"/' Cargo.toml
+        cargo install cargo-hack
+        cargo hack clippy ${{ env.cargo_hack_options }}
+        cargo hack clippy ${{ env.cargo_hack_options }} --tests
+        cargo fmt -- --check
+      shell: bash
+      env:
+        cargo_hack_options: --feature-powerset --optional-deps --exclude-features '${{ inputs.nightly-features }}'

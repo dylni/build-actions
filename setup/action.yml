@@ -1,0 +1,21 @@
+name: setup
+description:
+
+inputs:
+  version:
+    description:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v2
+    - run: perl -pi -e 's/#!\[warn\(unused_results\)\]/$&\n#![allow(clippy::unnecessary_lazy_evaluations)]\n#![allow(clippy::unwrap_or_else_default)]/' src/lib.rs
+      shell: bash
+    - if: inputs.version != 'stable'
+      run: perl -pi -e 's/#!\[warn\(unused_results\)\]/$&\n#![allow(unknown_lints)]/' src/lib.rs
+      shell: bash
+    - run: |
+        echo 'RUSTFLAGS=-Dwarnings -Wunused_results' >>$GITHUB_ENV
+        rustup set auto-self-update disable
+      shell: bash
