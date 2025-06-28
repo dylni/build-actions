@@ -1,0 +1,28 @@
+name: build
+description:
+
+inputs:
+  nightly-features:
+    description:
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - uses: dylni/build-actions/setup@master
+      with:
+        version: stable
+    - run: |
+        rustup component add clippy rustfmt
+        cargo install cargo-hack
+        cargo hack clippy ${{ env.cargo_hack_options }}
+        cargo hack clippy ${{ env.cargo_hack_options }} --tests -- -A clippy::uninlined_format_args
+        cargo fmt --check
+      shell: bash
+      env:
+        cargo_hack_options: --feature-powerset --optional-deps --exclude-features '${{ inputs.nightly-features }}'
+    - if: runner.os != 'Windows'
+      run: |
+        cargo install typos-cli
+        typos -c <(printf '[default]\nextend-words={fo="fo",fof="fof",ue="ue"}\n')
+      shell: bash
