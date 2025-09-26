@@ -1,0 +1,27 @@
+name: test
+description:
+
+inputs:
+  nightly-features:
+    description:
+    required: false
+  version:
+    description:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: dylni/build-actions/setup@master
+      with:
+        version: ${{ inputs.version }}
+    - run: cargo test --no-default-features
+      shell: bash
+    - if: inputs.nightly-features == '' || inputs.version == 'nightly'
+      run: |
+        cargo test --all-features
+        cargo test --all-features -r
+      shell: bash
+    - if: inputs.nightly-features != '' && inputs.version != 'nightly'
+      run: cargo test
+      shell: bash

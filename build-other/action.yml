@@ -1,0 +1,48 @@
+name: build-other
+description:
+
+inputs:
+  nightly-features:
+    description:
+    required: false
+  target:
+    description:
+    required: true
+  version:
+    description:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: dylni/build-actions/setup@master
+      with:
+        version: ${{ inputs.version }}
+    - run: |
+        echo 'cargo_hack_options_env=cargo_hack_options=--feature-powerset --optional-deps --target '"'${{ inputs.target }}'" >>$GITHUB_ENV
+      shell: bash
+    - if: inputs.version == 'nightly'
+      run: echo '${{ env.cargo_hack_options_env }}' >>$GITHUB_ENV
+      shell: bash
+    - if: inputs.version != 'nightly'
+      run: |
+        echo '${{ env.cargo_hack_options_env }} --exclude-features '"'${{ inputs.nightly-features }}'" >>$GITHUB_ENV
+      shell: bash
+    - if: inputs.version == 'stable'
+      run: rustup component add clippy
+      shell: bash
+    - if: startsWith(inputs.version, '1.')
+      run: |
+        echo 'cargo_install_options=--version 0.5.21 --locked' >>$GITHUB_ENV
+      shell: bash
+    - run: |
+        rustup target add ${{ inputs.target }}
+        rm -fr src/bin
+        cargo install cargo-hack ${{ env.cargo_install_options }}
+      shell: bash
+    - if: inputs.version == 'stable'
+      run: cargo hack clippy ${{ env.cargo_hack_options }}
+      shell: bash
+    - if: inputs.version != 'stable'
+      run: cargo hack rustc ${{ env.cargo_hack_options }}
+      shell: bash

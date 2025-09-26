@@ -1,0 +1,34 @@
+name: setup
+description:
+
+inputs:
+  version:
+    description:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+    - run: perl -pi -e 's/#!\[warn\(unused_results\)\]/$&\n#![warn(unsafe_op_in_unsafe_fn)]\n#![allow(clippy::uninlined_format_args)]\n#![allow(clippy::unnecessary_lazy_evaluations)]\n#![allow(clippy::unwrap_or_default)]/' src/lib.rs
+      shell: bash
+    - if: inputs.version != 'stable'
+      run: perl -pi -e 's/#!\[warn\(unused_results\)\]/$&\n#![allow(unknown_lints)]/' src/lib.rs
+      shell: bash
+    - run: rustup set auto-self-update disable
+      shell: bash
+    - if: startsWith(inputs.version, '1.')
+      run: |
+        rustup install nightly
+        cargo +nightly generate-lockfile -Z minimal-versions
+      shell: bash
+    - run: |
+        rustup install ${{ inputs.version }}
+        rustup default ${{ inputs.version }}
+        echo 'RUST_BACKTRACE=1' >>$GITHUB_ENV
+        echo 'RUSTFLAGS=-Dwarnings' >>$GITHUB_ENV
+      shell: bash
+    - if: ${{ ! startsWith(inputs.version, '1.6') && ! startsWith(inputs.version, '1.7') }}
+      run: |
+        echo "RUSTFLAGS=$RUSTFLAGS --check-cfg cfg(${GITHUB_REPOSITORY##*[^0-9A-Z_a-z]}_docs_rs)" >>$GITHUB_ENV
+      shell: bash
